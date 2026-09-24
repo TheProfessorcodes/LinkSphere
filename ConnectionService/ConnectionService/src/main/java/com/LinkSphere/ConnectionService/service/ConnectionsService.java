@@ -2,10 +2,13 @@ package com.LinkSphere.ConnectionService.service;
 
 import com.LinkSphere.ConnectionService.auth.AuthContextHolder;
 import com.LinkSphere.ConnectionService.entity.Person;
+import com.LinkSphere.ConnectionService.event.ConnectionAcceptedEvent;
+import com.LinkSphere.ConnectionService.event.ConnectionRequestEvent;
 import com.LinkSphere.ConnectionService.exception.BadRequestException;
 import com.LinkSphere.ConnectionService.repository.PersonRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,6 +18,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ConnectionsService {
     private final PersonRepository personRepository;
+    private final KafkaTemplate<Long, ConnectionRequestEvent> connectionRequestKafkaTemplate;
+    private final KafkaTemplate<Long, ConnectionAcceptedEvent> connectionAcceptedKafkaTemplate;
 
     public List<Person> getFirstDegreeConnectionsOfUser(Long userId) {
 
@@ -43,6 +48,11 @@ public class ConnectionsService {
 
 
         personRepository.addConnectionRequest(senderId, receiverId);
+        ConnectionRequestEvent event=ConnectionRequestEvent.builder()
+                        .senderId(senderId)
+                        .receiverId(receiverId)
+                        .build();
+        connectionRequestKafkaTemplate.send("connection_request_topic",event);
         log.info("Successfully sent the connection request");
     }
     public void acceptConnectionRequest(Long senderId) {
@@ -61,6 +71,12 @@ public class ConnectionsService {
             throw new BadRequestException("Connection request already exists, cannot accept again");
         }
         personRepository.acceptConnectionRequest(senderId, receiverId);
+        ConnectionAcceptedEvent event = ConnectionAcceptedEvent.builder()
+                .senderId(senderId)
+                .receiverId(receiverId)
+                .build();
+
+        connectionAcceptedKafkaTemplate.send("connection_accepted_topic", event);
         log.info("Successfully accepted the connection request");
     }
 
