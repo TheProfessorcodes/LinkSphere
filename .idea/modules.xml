@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/ConnectionService/ConnectionService/ConnectionService.iml" filepath="$PROJECT_DIR$/ConnectionService/ConnectionService/ConnectionService.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/LinkSphere.iml" filepath="$PROJECT_DIR$/.idea/LinkSphere.iml" />
+    </modules>
+  </component>
+</project>

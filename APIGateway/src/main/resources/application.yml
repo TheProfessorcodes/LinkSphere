@@ -1,0 +1,40 @@
+server.port: 8080
+eureka.client.service-url.defaultZone: http://localhost:8761/eureka
+jwt.secretKey: jheaiuwhfiuengkjrnfiuhr9RU3IOJJANFKJFGjnjfsj
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    reactor.netty.http.client: DEBUG
+
+eureka:
+  instance:
+    prefer-ip-address: true
+
+spring:
+  application.name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: User-Service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/v1/users/**
+          filters:
+            - StripPrefix=3
+
+        - id: Post-Service
+          uri: lb://POST-SERVICE
+          predicates:
+            - Path=/api/v1/posts/**
+          filters:
+            - StripPrefix=3
+            - name: AuthenticationFilter
+
+        - id: ConnectionService
+          uri: lb://CONNECTIONSERVICE
+          predicates:
+            - Path=/api/v1/connections/**
+          filters:
+            - StripPrefix=3
+            - name: AuthenticationFilter
