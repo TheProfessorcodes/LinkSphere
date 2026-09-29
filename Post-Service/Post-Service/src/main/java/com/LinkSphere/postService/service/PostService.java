@@ -2,6 +2,7 @@ package com.LinkSphere.postService.service;
 
 import com.LinkSphere.postService.auth.AuthContextHolder;
 import com.LinkSphere.postService.client.ConnectionsServiceClient;
+import com.LinkSphere.postService.client.UploaderServiceClient;
 import com.LinkSphere.postService.dto.PersonDto;
 import com.LinkSphere.postService.dto.PostCreateRequestDto;
 import com.LinkSphere.postService.dto.PostDto;
@@ -11,9 +12,11 @@ import com.LinkSphere.postService.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import com.LinkSphere.postService.respository.PostRepository;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,11 +30,18 @@ public class PostService {
     private final ModelMapper modelMapper;
     private final ConnectionsServiceClient connectionsServiceClient;
     private final KafkaTemplate<Long, PostCreated> postCreatedKafkaTemplate;
+    private final UploaderServiceClient uploaderServiceClient;
 
-    public PostDto createPost(PostCreateRequestDto postCreateRequestDto, Long userId) {
+    public PostDto createPost(PostCreateRequestDto postCreateRequestDto, MultipartFile file) {
+        Long userId=AuthContextHolder.getCurrentUserId();
         log.info("Creating post");
+
+        ResponseEntity<String> imageUrl=uploaderServiceClient.uploadFile(file);
+
         Post post=modelMapper.map(postCreateRequestDto, Post.class);
         post.setUserId(userId);
+        post.setImageUrl(imageUrl.getBody());
+
         post=postRepository.save(post);
         List<PersonDto> personDtoList=connectionsServiceClient.getFirstDegreeConnectionsOfUser(userId);
         for(PersonDto person:personDtoList){//sending notification to each connection

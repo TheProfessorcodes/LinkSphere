@@ -17,14 +17,14 @@ spring:
     gateway:
       routes:
         - id: User-Service
-          uri: lb://USER-SERVICE
+          uri: ${USER_SERVICE_URI:lb://USER_SERVICE}
           predicates:
             - Path=/api/v1/users/**
           filters:
             - StripPrefix=3
 
         - id: Post-Service
-          uri: lb://POST-SERVICE
+          uri: ${POSTS_SERVICE_URI:lb://POST-SERVICE}
           predicates:
             - Path=/api/v1/posts/**
           filters:
@@ -32,7 +32,7 @@ spring:
             - name: AuthenticationFilter
 
         - id: ConnectionService
-          uri: lb://CONNECTIONSERVICE
+          uri: ${CONNECTIONS_SERVICE_URI:lb://CONNECTIONSERVICE}
           predicates:
             - Path=/api/v1/connections/**
           filters:

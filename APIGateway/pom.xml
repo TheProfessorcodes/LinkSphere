@@ -11,7 +11,7 @@
 	<groupId>LinkSphere</groupId>
 	<artifactId>APIGateway</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>APIGateway</name>
+	<name>api-gateway</name>
 	<description>API Gateway for our LinkedIn Project</description>
 	<url/>
 	<licenses>
@@ -110,6 +110,27 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>com.google.cloud.tools</groupId>
+				<artifactId>jib-maven-plugin</artifactId>
+				<version>3.4.4</version>
+				<configuration>
+					<to>
+						<image>docker.io/arnavcodes14/linksphere-app-${project.name}:${project.version}</image>
+						<tags>
+							<tag>latest</tag>
+						</tags>
+					</to>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>build</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
