@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uploader-service
+spec:
+  selector:
+    matchLabels:
+      app: uploader-service
+  template:
+    metadata:
+      labels:
+        app: uploader-service
+    spec:
+      containers:
+        - name: uploader-service
+          image: arnavcodes14/linksphere-uploader-service
+          resources:
+            limits:
+              memory: "400Mi"
+              cpu: "200m"
+            requests:
+              memory: "200Mi"
+              cpu: "100m"
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+          ports:
+            - containerPort: 9050
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: uploader-service
+spec:
+  selector:
+    app: uploader-service
+  ports:
+    - port: 80
+      targetPort: 9050

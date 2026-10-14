@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connections-service
+spec:
+  selector:
+    matchLabels:
+      app: connections-service
+  template:
+    metadata:
+      labels:
+        app: connections-service
+    spec:
+      containers:
+        - name: connections-service
+          image: arnavcodes14/linksphere-connection-service
+          resources:
+            limits:
+              memory: "400Mi"
+              cpu: "200m"
+            requests:
+              memory: "200Mi"
+              cpu: "100m"
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+            - name: DB_USERNAME
+              value: neo4j
+            - name: DB_PASSWORD
+              value: admin123
+            - name: DB_NAME
+              value: connections-db
+            - name: KAFKA_LOG4J_ROOT_LOGLEVEL
+              value: "ERROR"
+          ports:
+            - containerPort: 9030
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: connections-service
+spec:
+  selector:
+    app: connections-service
+  ports:
+    - port: 80
+      targetPort: 9030
