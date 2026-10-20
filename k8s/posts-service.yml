@@ -23,20 +23,20 @@ spec:
               cpu: "100m"
           env:
             - name: SPRING_PROFILES_ACTIVE
-              value: k8s
+              value: "k8s"
+            - name: UPLOADER_SERVICE_URI
+              value: "http://uploader-service"
             - name: DB_USERNAME
-              value: user
+              value: "user"
             - name: DB_PASSWORD
-              value: password
+              value: "password"
             - name: DB_SERVER
-              value: posts-db
+              value: "posts-db"
             - name: DB_NAME
-              value: postsDB
+              value: "postsDB"
           ports:
             - containerPort: 9010
-
 ---
-
 apiVersion: v1
 kind: Service
 metadata:

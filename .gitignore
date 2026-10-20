@@ -1,2 +1,20 @@
+
 .idea/
 *.iml
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local Spring Boot secrets
+application-local.properties
+application-local.yml
+application-secret.properties
+application-secret.yml
+
+# Credentials and private keys
+credentials.json
+service-account*.json
+*.pem
+*.key
