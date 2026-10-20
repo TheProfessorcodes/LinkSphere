@@ -6,6 +6,6 @@ server.port: 9050
 eureka.client.service-url.defaultZone: http://localhost:8761/eureka
 
 cloudinary:
-  cloud-name: e9no3tay
-  api-key: 496932168818556
-  api-secret: 1C76IVXGgUS0U76BQkXzwZy2YuY
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}

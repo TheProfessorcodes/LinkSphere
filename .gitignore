@@ -18,3 +18,8 @@ credentials.json
 service-account*.json
 *.pem
 *.key
+
+# JVM crash logs
+*.log
+hs_err_pid*
+replay_pid*

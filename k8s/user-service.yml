@@ -24,10 +24,18 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: k8s
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-credentials
+                  key: JWT_SECRET
             - name: DB_USERNAME
               value: user
             - name: DB_PASSWORD
-              value: password
+              valueFrom:
+                secretKeyRef:
+                  name: user-db-credentials
+                  key: DB_PASSWORD
             - name: DB_SERVER
               value: user-db
             - name: DB_NAME

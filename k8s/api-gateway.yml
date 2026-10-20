@@ -26,6 +26,11 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: jwt-credentials
+                  key: JWT_SECRET
             - name: SPRING_PROFILES_ACTIVE
               value: k8s
           readinessProbe:

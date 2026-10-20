@@ -1,0 +1,7 @@
+{
+  "metadata": {
+    "annotations": {
+      "cloud.google.com/backend-config": "{\"default\":\"api-gateway-backendconfig\"}"
+    }
+  }
+}
