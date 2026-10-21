@@ -1,20 +1,32 @@
-<div align="center">
-
-# 🔗 LinkSphere
+# 🌐 LinkSphere
 
 **A LinkedIn-inspired professional networking platform built with Spring Boot microservices, Kafka, PostgreSQL, Neo4j, Docker and Kubernetes (GKE).**
 
 ![Java](https://img.shields.io/badge/Java-21-007396?style=flat-square&logo=openjdk&logoColor=white)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x_|_4.x-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x_%2F_4.x-6DB33F?style=flat-square&logo=springboot&logoColor=white)
 ![Kafka](https://img.shields.io/badge/Apache_Kafka-Event_Driven-231F20?style=flat-square&logo=apachekafka&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-Graph_DB-008CC1?style=flat-square&logo=neo4j&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Jib-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-GKE-326CE5?style=flat-square&logo=kubernetes&logoColor=white)
 
-[✨ Features](#features) · [📐 Architecture](#architecture) · [🧩 Services](#services) · [📡 API](#api) · [🛠 Tech Stack](#tech-stack) · [🚀 Run Locally](#run-locally) · [☸ Deploy](#deploy) · [🗺 Roadmap](#roadmap)
+<details>
+<summary><b>🧭 Explore this README</b></summary>
 
-</div>
+<br>
+
+| Section | What you'll find |
+| :--- | :--- |
+| [✨ Features](#features) | What LinkSphere can do |
+| [📐 Architecture](#architecture) | System design diagrams, Kafka events, data models |
+| [🧩 Services](#services) | The 7 microservices, their ports and databases |
+| [📡 API](#api) | Endpoints and an example curl session |
+| [🛠 Tech Stack](#tech-stack) | Languages, frameworks and tools used |
+| [🚀 Run Locally](#run-locally) | Set up and start the project on your machine |
+| [☸ Deploy](#deploy) | Deploy to Kubernetes (GKE) |
+| [🗺 Roadmap](#roadmap) | Planned improvements |
+
+</details>
 
 ---
 
@@ -212,7 +224,7 @@ curl -X POST "$BASE/api/v1/posts/likes/1" \
 | Category | Technology | Purpose / Use Case |
 | :--- | :--- | :--- |
 | **Language** | ![Java](https://img.shields.io/badge/Java-21-007396?style=flat-square&logo=openjdk&logoColor=white) | Core application logic |
-| **Framework** | ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x_|_4.x-6DB33F?style=flat-square&logo=springboot&logoColor=white) | Web MVC, Data JPA, Data Neo4j, Kafka integration |
+| **Framework** | ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x_%2F_4.x-6DB33F?style=flat-square&logo=springboot&logoColor=white) | Web MVC, Data JPA, Data Neo4j, Kafka integration |
 | **API Gateway** | ![Spring Cloud Gateway](https://img.shields.io/badge/Spring_Cloud_Gateway-6DB33F?style=flat-square&logo=spring&logoColor=white) | Routing and JWT filter |
 | **Service Discovery** | ![Eureka](https://img.shields.io/badge/Netflix_Eureka-E50914?style=flat-square&logo=netflix&logoColor=white) | Service registry for local development |
 | **Inter-service calls** | ![OpenFeign](https://img.shields.io/badge/OpenFeign-6DB33F?style=flat-square&logo=spring&logoColor=white) | Declarative REST clients |
