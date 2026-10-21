@@ -1,417 +1,409 @@
-# LinkSphere
+<div align="center">
 
-**A LinkedIn-inspired professional networking backend built with Spring
-Boot microservices.**
+# 🔗 LinkSphere
 
-LinkSphere supports user authentication, professional connections,
-image-based posts, likes, and event-driven notifications. It uses
-PostgreSQL for relational data, Neo4j for the connection graph, Kafka
-for asynchronous events, and Kubernetes on Google Kubernetes Engine
-(GKE) for deployment.
+**A LinkedIn-inspired professional networking platform built with Spring Boot microservices, Kafka, PostgreSQL, Neo4j, Docker and Kubernetes (GKE).**
 
-![Java 21](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
-![Spring
-Boot](https://img.shields.io/badge/Spring_Boot-3.x%20%2F%204.x-6DB33F?logo=springboot&logoColor=white)
-![Apache
-Kafka](https://img.shields.io/badge/Apache_Kafka-event--driven-231F20?logo=apachekafka)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
-![Neo4j](https://img.shields.io/badge/Neo4j-graph%20database-008CC1?logo=neo4j&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-GKE-326CE5?logo=kubernetes&logoColor=white)
+![Java](https://img.shields.io/badge/Java-21-007396?style=flat-square&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x_|_4.x-6DB33F?style=flat-square&logo=springboot&logoColor=white)
+![Kafka](https://img.shields.io/badge/Apache_Kafka-Event_Driven-231F20?style=flat-square&logo=apachekafka&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)
+![Neo4j](https://img.shields.io/badge/Neo4j-Graph_DB-008CC1?style=flat-square&logo=neo4j&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Jib-2496ED?style=flat-square&logo=docker&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-GKE-326CE5?style=flat-square&logo=kubernetes&logoColor=white)
 
-## Highlights
+[✨ Features](#features) · [📐 Architecture](#architecture) · [🧩 Services](#services) · [📡 API](#api) · [🛠 Tech Stack](#tech-stack) · [🚀 Run Locally](#run-locally) · [☸ Deploy](#deploy) · [🗺 Roadmap](#roadmap)
 
--   **JWT authentication:** sign-up and login with BCrypt password
-    hashing and stateless access tokens.
--   **API Gateway security:** validates JWTs and forwards the
-    authenticated user's ID to downstream services through `X-User-Id`.
--   **Professional connections:** send, accept, and reject connection
-    requests; retrieve first-degree connections using Neo4j.
--   **Posts and likes:** create posts with images, retrieve posts, and
-    like or unlike posts.
--   **Media uploads:** upload images to Cloudinary through a dedicated
-    service.
--   **Asynchronous notifications:** Kafka events drive notifications for
-    connection requests, accepted connections, new posts, and likes.
--   **Microservice communication:** REST-based service calls with
-    OpenFeign and asynchronous messaging with Kafka.
--   **Cloud deployment:** Kubernetes workloads and persistent database
-    storage deployed on GKE.
+</div>
 
-## Architecture
+---
 
-``` mermaid
-flowchart TB
-    C[Client / Postman] --> I[GCE Ingress]
-    I --> G[API Gateway<br/>JWT validation]
+LinkSphere lets users **sign up, connect with each other, share image posts, like posts, and get notified** about activity in their network. Every capability lives in its own service with its own database. Services talk over **REST (OpenFeign)** when they need an answer and over **Kafka events** when they don't.
 
-    G --> U[User Service]
-    G --> P[Post Service]
-    G --> CS[Connection Service]
+<a name="features"></a>
+## ✨ Features
 
-    P -->|OpenFeign| CS
-    P -->|OpenFeign| UP[Uploader Service]
-    UP --> CL[Cloudinary]
+* **🔐 Authentication:** Sign up and log in with BCrypt-hashed passwords and stateless **JWT** access tokens.
+* **🚪 Gateway-level security:** The API Gateway validates the JWT once and forwards the caller's identity downstream in an `X-User-Id` header.
+* **🤝 Connections:** Send, accept and reject connection requests and list first-degree connections, stored as a graph in **Neo4j**.
+* **📝 Posts & Likes:** Create posts with an image, fetch a post, list a user's posts, like and unlike (duplicate likes are rejected).
+* **🖼 Media uploads:** Images go through a dedicated uploader service to **Cloudinary**.
+* **🔔 Notifications:** Event-driven notifications for new connection requests, accepted connections, new posts from your connections and likes on your posts.
+* **☸ Cloud-native:** Containerised with **Jib** and deployed on **Kubernetes (GKE)** behind a GCE Ingress.
 
-    U --> UDB[(User PostgreSQL)]
-    P --> PDB[(Posts PostgreSQL)]
-    CS --> N[(Neo4j)]
-    NS[Notification Service] --> NDB[(Notification PostgreSQL)]
+---
 
-    U -. user_created .-> K[(Apache Kafka)]
-    P -. post_created / post_liked .-> K
-    CS -. connection events .-> K
-    K --> CS
-    K --> NS
+<a name="architecture"></a>
+## 📐 System Design & Architecture
 
-    E[Eureka Discovery Server<br/>local development] -. service discovery .-> G
-    E -. service discovery .-> U
-    E -. service discovery .-> P
-    E -. service discovery .-> CS
-    E -. service discovery .-> NS
-    E -. service discovery .-> UP
-```
+LinkSphere follows a **database-per-service** design. Click any diagram to view it full size.
 
-### Design decisions
+### 1. 🏢 High-Level Architecture
+All traffic enters through the Ingress and the API Gateway, which routes to the User, Post and Connection services. Post Service calls Connection and Uploader synchronously with Feign, while every service publishes or consumes Kafka events asynchronously.
 
--   **Database per service:** User, Post, and Notification services use
-    separate PostgreSQL databases; Connection Service stores
-    relationships in Neo4j.
--   **Polyglot persistence:** relational records live in PostgreSQL,
-    while connection relationships are represented as graph nodes and
-    edges.
--   **Synchronous vs. asynchronous communication:** OpenFeign handles
-    calls that need an immediate response; Kafka handles event-driven
-    side effects.
--   **Gateway-level authentication:** the gateway validates the JWT and
-    passes the caller's ID downstream in `X-User-Id`.
--   **Environment-specific discovery:** Eureka is used for local
-    development; the Kubernetes profile relies on Kubernetes Services
-    and DNS.
+[![High-Level Architecture](./assets-only/assets/architecture.png)](./assets/architecture.png)
 
-## Services
+### 2. 📨 Event Flow (Kafka)
+Five topics connect the services. Producers never wait for consumers, so a slow or failing notification never blocks a post, like or connection request.
 
-  ------------------------------------------------------------------------
-  Service                   Port (local) Responsibility   Storage /
-                                                          integrations
-  ---------------- --------------------- ---------------- ----------------
-  API Gateway                     `8080` Entry point,     Spring Cloud
-                                         routing, JWT     Gateway
-                                         validation,      
-                                         identity header  
+[![Kafka Event Flow](./assets-only/assets/kafka-events.png)](./assets/kafka-events.png)
 
-  Discovery Server                `8761` Service registry Eureka
-                                         for local        
-                                         development      
+| Topic | Producer | Consumer | Result |
+| :--- | :--- | :--- | :--- |
+| `user_created_topic` | User Service | Connection Service | Creates a `Person` node in Neo4j |
+| `connection_request_topic` | Connection Service | Notification Service | Notifies the receiver |
+| `connection_accepted_topic` | Connection Service | Notification Service | Notifies the original sender |
+| `post_created_topic` | Post Service | Notification Service | One event per first-degree connection, each saved as a notification |
+| `post_liked_topic` | Post Service | Notification Service | Notifies the post owner |
 
-  User Service                    `9020` Sign-up, login,  PostgreSQL,
-                                         password         Kafka
-                                         hashing, JWT     
-                                         issuance         
+### 3. 🔐 Sign-up, Login & Authenticated Requests
+Signing up saves the user and fires `user_created_topic`, so the Connection Service creates the matching graph node. After login, every protected request carries the JWT. The gateway verifies it and injects `X-User-Id`; downstream services never parse tokens themselves.
 
-  Post Service                    `9010` Posts, likes,    PostgreSQL,
-                                         connection       OpenFeign, Kafka
-                                         lookups, post    
-                                         events           
+[![Auth Flow](./assets-only/assets/auth-flow.png)](./assets/auth-flow.png)
 
-  Connection                      `9030` Connection       Neo4j, Kafka
-  Service                                requests and     
-                                         first-degree     
-                                         connections      
+### 4. 📝 Creating a Post (Image Upload + Fan-out)
+The Post Service uploads the image through the Uploader, saves the post, asks the Connection Service for the author's connections, then publishes one `post_created_topic` event per connection.
 
-  Notification                    `9040` Consumes events  PostgreSQL,
-  Service                                and persists     Kafka
-                                         notifications    
+[![Create Post Flow](./assets-only/assets/create-post-flow.png)](./assets/create-post-flow.png)
 
-  Uploader Service                `9050` Image uploads    Cloudinary
-  ------------------------------------------------------------------------
+### 5. 🤝 Connection Request Lifecycle
+Backed by two Neo4j relationship types, `REQUESTED_TO` and `CONNECTED_TO`. You cannot connect with yourself, send a duplicate request, request someone you're already connected to, or accept/reject a request that doesn't exist.
 
-## Event-driven workflows
+[![Connection Lifecycle](./assets-only/assets/connection-lifecycle.png)](./assets/connection-lifecycle.png)
 
-  -----------------------------------------------------------------------------------
-  Kafka topic                   Producer          Consumer          Outcome
-  ----------------------------- ----------------- ----------------- -----------------
-  `user_created_topic`          User Service      Connection        Creates the
-                                                  Service           user's `Person`
-                                                                    node in Neo4j
+### 6. 🗄 Data Models
 
-  `connection_request_topic`    Connection        Notification      Notifies the
-                                Service           Service           request recipient
+<table>
+<tr>
+<td width="50%" valign="top">
 
-  `connection_accepted_topic`   Connection        Notification      Notifies the
-                                Service           Service           original
-                                                                    requester
+**📊 Relational (PostgreSQL)**
 
-  `post_created_topic`          Post Service      Notification      Creates
-                                                  Service           notifications for
-                                                                    first-degree
-                                                                    connections
+`USERS` lives in the User DB, `POST` and `POST_LIKES` in the Posts DB, `NOTIFICATION` in the Notification DB. `userId` columns reference `USERS.id` logically across services (no cross-database foreign keys).
 
-  `post_liked_topic`            Post Service      Notification      Notifies the post
-                                                  Service           owner
-  -----------------------------------------------------------------------------------
+[![ERD](./assets-only/assets/erd.png)](./assets/erd.png)
 
-### Example: creating a post
+</td>
+<td width="50%" valign="top">
 
-1.  The client sends a multipart request through the API Gateway.
-2.  The Post Service asks the Uploader Service to upload the image to
-    Cloudinary.
-3.  The Post Service saves the post in PostgreSQL.
-4.  It retrieves the author's first-degree connections through
-    OpenFeign.
-5.  It publishes post-created events to Kafka.
-6.  The Notification Service consumes the events and stores
-    notifications.
+**🕸 Graph (Neo4j)**
 
-## API overview
+Node `Person { id, userId, name }`. `REQUESTED_TO` is a pending request (sender → receiver); `CONNECTED_TO` is queried undirected so both users see each other.
 
-All routes below are accessed through the API Gateway. Protected
-endpoints require:
+[![Graph Model](./assets-only/assets/graph-model.png)](./assets/graph-model.png)
 
-``` http
-Authorization: Bearer <JWT>
-```
+</td>
+</tr>
+</table>
 
-### Authentication
+### 7. ☸ Kubernetes Deployment
+Everything runs on GKE: one Deployment + ClusterIP Service per microservice, StatefulSets with persistent volumes for the databases, a 2-replica Kafka StatefulSet (KRaft), and a GCE Ingress in front of the gateway.
 
-  -----------------------------------------------------------------------------
-  Method                  Endpoint                      Description
-  ----------------------- ----------------------------- -----------------------
-  `POST`                  `/api/v1/users/auth/signup`   Register a user
+[![Kubernetes Deployment](./assets-only/assets/k8s-deployment.png)](./assets/k8s-deployment.png)
 
-  `POST`                  `/api/v1/users/auth/login`    Log in and receive an
-                                                        access token
-  -----------------------------------------------------------------------------
+### 🧠 Design Principles
+* **Database per service:** No cross-service joins; references like `userId` are logical.
+* **Polyglot persistence:** PostgreSQL for relational data, Neo4j where graph traversal is the natural fit.
+* **Sync where you need an answer, async where you don't:** Feign for upload and connection lookups, Kafka for notifications and graph-node creation.
+* **Authenticate once, at the edge:** Downstream services trust the gateway's `X-User-Id` header.
+* **Environment-aware config:** The default profile uses Eureka (local dev); the `k8s` profile disables it and uses Kubernetes DNS.
 
-### Posts and likes
+---
 
-  ----------------------------------------------------------------------------------------------
-  Method                  Endpoint                                       Description
-  ----------------------- ---------------------------------------------- -----------------------
-  `POST`                  `/api/v1/posts/core`                           Create a post using
-                                                                         `multipart/form-data`
+<a name="services"></a>
+## 🧩 Services
 
-  `GET`                   `/api/v1/posts/core/{postId}`                  Retrieve a post
+| Service | Folder | Port | Datastore | Responsibility |
+| :--- | :--- | :---: | :--- | :--- |
+| 🚪 **API Gateway** | `APIGateway` | `8080` | – | Routing, JWT validation, `X-User-Id` injection |
+| 🧭 **Discovery Server** | `DiscoveryServer` | `8761` | – | Eureka registry (local development) |
+| 👥 **User Service** | `User-Service` | `9020` | PostgreSQL | Sign-up, login, BCrypt, JWT issuing |
+| 📝 **Post Service** | `Post-Service` | `9010` | PostgreSQL | Posts and likes |
+| 🤝 **Connection Service** | `ConnectionService` | `9030` | Neo4j | Connection requests, first-degree connections |
+| 🔔 **Notification Service** | `Notification-Service` | `9040` | PostgreSQL | Consumes events, stores notifications |
+| 🖼 **Uploader Service** | `Uploader-Service` | `9050` | – | Uploads images to Cloudinary |
 
-  `GET`                   `/api/v1/posts/core/users/{userId}/allPosts`   List a user's posts
+---
 
-  `POST`                  `/api/v1/posts/likes/{postId}`                 Like a post
+<a name="api"></a>
+## 📡 API Reference
 
-  `POST`                  `/api/v1/posts/unlikes/{postId}`               Remove your like
-  ----------------------------------------------------------------------------------------------
+Every call goes through the **API Gateway**, which strips the first three path segments (`/api/v1/<service>`) before forwarding.
 
-For post creation, send a JSON part named `post` (for example,
-`{"content":"Hello from LinkSphere"}`) and a file part named `file`.
+| Route prefix | Forwarded to | Auth |
+| :--- | :--- | :--- |
+| `/api/v1/users/**` | User Service | ❌ Public |
+| `/api/v1/posts/**` | Post Service | ✅ `Authorization: Bearer <token>` |
+| `/api/v1/connections/**` | Connection Service | ✅ `Authorization: Bearer <token>` |
 
-### Connections
+<details>
+<summary><b>👥 Users (public)</b></summary>
 
-  --------------------------------------------------------------------------------------------------
-  Method                  Endpoint                                           Description
-  ----------------------- -------------------------------------------------- -----------------------
-  `GET`                   `/api/v1/connections/core/{userId}/first-degree`   List first-degree
-                                                                             connections
+| Method | Endpoint | Body | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/users/auth/signup` | `{ "name", "email", "password" }` | Register. Returns `201` with the user (no password). |
+| `POST` | `/api/v1/users/auth/login` | `{ "email", "password" }` | Returns a JWT access token (valid 100 minutes). |
 
-  `POST`                  `/api/v1/connections/core/request/{userId}`        Send a connection
-                                                                             request
+</details>
 
-  `POST`                  `/api/v1/connections/core/accept/{userId}`         Accept a request from
-                                                                             that user
+<details>
+<summary><b>📝 Posts & Likes (authenticated)</b></summary>
 
-  `POST`                  `/api/v1/connections/core/reject/{userId}`         Reject a request from
-                                                                             that user
-  --------------------------------------------------------------------------------------------------
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/v1/posts/core` | Create a post. `multipart/form-data`: JSON part `post` (`{"content": "..."}`) and file part `file`. |
+| `GET` | `/api/v1/posts/core/{postId}` | Get a post by id. |
+| `GET` | `/api/v1/posts/core/users/{userId}/allPosts` | List all posts by a user. |
+| `POST` | `/api/v1/posts/likes/{postId}` | Like a post (`204`). |
+| `POST` | `/api/v1/posts/unlikes/{postId}` | Remove your like (`204`). |
 
-The Connection Service validates common cases such as self-connection
-attempts, duplicate requests, requests to already-connected users, and
-accepting or rejecting a nonexistent request.
+</details>
 
-### Quick API example
+<details>
+<summary><b>🤝 Connections (authenticated)</b></summary>
 
-``` bash
-BASE=http://localhost:8080
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/connections/core/{userId}/first-degree` | List a user's first-degree connections. |
+| `POST` | `/api/v1/connections/core/request/{userId}` | Send a connection request to `userId`. |
+| `POST` | `/api/v1/connections/core/accept/{userId}` | Accept the request sent by `userId`. |
+| `POST` | `/api/v1/connections/core/reject/{userId}` | Reject the request sent by `userId`. |
 
-# Register
+</details>
+
+<details>
+<summary><b>⚡ Try it: example curl session</b></summary>
+
+```bash
+BASE=http://localhost:8080   # or your Ingress IP on GKE
+
+# 1. Sign up
 curl -X POST "$BASE/api/v1/users/auth/signup" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Ada Lovelace","email":"ada@example.com","password":"replace-me"}'
+  -d '{"name":"Ada Lovelace","email":"ada@example.com","password":"s3cret"}'
 
-# Log in
-curl -X POST "$BASE/api/v1/users/auth/login" \
+# 2. Log in and capture the token
+TOKEN=$(curl -s -X POST "$BASE/api/v1/users/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"ada@example.com","password":"replace-me"}'
+  -d '{"email":"ada@example.com","password":"s3cret"}')
+
+# 3. Send a connection request to user 2
+curl -X POST "$BASE/api/v1/connections/core/request/2" \
+  -H "Authorization: Bearer $TOKEN"
+
+# 4. Create a post with an image
+curl -X POST "$BASE/api/v1/posts/core" \
+  -H "Authorization: Bearer $TOKEN" \
+  -F 'post={"content":"My first LinkSphere post"};type=application/json' \
+  -F "file=@./photo.jpg"
+
+# 5. Like post 1
+curl -X POST "$BASE/api/v1/posts/likes/1" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-Use the token returned by your login endpoint as a Bearer token for
-protected routes. Check the response format in the User Service if you
-want to automate token extraction in a script.
+</details>
 
-## Technology stack
+---
 
-  -----------------------------------------------------------------------
-  Area                                Technologies
-  ----------------------------------- -----------------------------------
-  Language and framework              Java 21, Spring Boot, Spring Web
-                                      MVC, Spring Data JPA, Spring Data
-                                      Neo4j
+<a name="tech-stack"></a>
+## 🛠 Tech Stack
 
-  Microservices                       Spring Cloud Gateway, Eureka,
-                                      OpenFeign
+| Category | Technology | Purpose / Use Case |
+| :--- | :--- | :--- |
+| **Language** | ![Java](https://img.shields.io/badge/Java-21-007396?style=flat-square&logo=openjdk&logoColor=white) | Core application logic |
+| **Framework** | ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x_|_4.x-6DB33F?style=flat-square&logo=springboot&logoColor=white) | Web MVC, Data JPA, Data Neo4j, Kafka integration |
+| **API Gateway** | ![Spring Cloud Gateway](https://img.shields.io/badge/Spring_Cloud_Gateway-6DB33F?style=flat-square&logo=spring&logoColor=white) | Routing and JWT filter |
+| **Service Discovery** | ![Eureka](https://img.shields.io/badge/Netflix_Eureka-E50914?style=flat-square&logo=netflix&logoColor=white) | Service registry for local development |
+| **Inter-service calls** | ![OpenFeign](https://img.shields.io/badge/OpenFeign-6DB33F?style=flat-square&logo=spring&logoColor=white) | Declarative REST clients |
+| **Security** | ![JWT](https://img.shields.io/badge/JWT-jjwt_0.12-000000?style=flat-square&logo=jsonwebtokens&logoColor=white) | Stateless authentication (BCrypt for passwords) |
+| **Messaging** | ![Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=flat-square&logo=apachekafka&logoColor=white) | Asynchronous domain events (KRaft mode on Kubernetes) |
+| **Relational DB** | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white) | Users, posts, likes, notifications |
+| **Graph DB** | ![Neo4j](https://img.shields.io/badge/Neo4j-4.4-008CC1?style=flat-square&logo=neo4j&logoColor=white) | Connection graph |
+| **Media** | ![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=flat-square&logo=cloudinary&logoColor=white) | Image hosting |
+| **Utilities** | ![Lombok](https://img.shields.io/badge/Lombok-BC4521?style=flat-square&logo=lombok&logoColor=white) | Lombok, ModelMapper |
+| **Build & Images** | ![Maven](https://img.shields.io/badge/Maven-C71A36?style=flat-square&logo=apachemaven&logoColor=white) ![Jib](https://img.shields.io/badge/Jib-4285F4?style=flat-square&logo=google&logoColor=white) | Maven wrapper builds, daemonless container images |
+| **Orchestration** | ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white) ![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?style=flat-square&logo=kubernetes&logoColor=white) | Containers on GKE with a GCE Ingress |
 
-  Security                            JWT (`jjwt`), BCrypt
+---
 
-  Messaging                           Apache Kafka
+<details>
+<summary><b>📂 Project Structure</b></summary>
 
-  Databases                           PostgreSQL 16, Neo4j 4.4
-
-  Media storage                       Cloudinary
-
-  Build and container images          Maven Wrapper, Jib
-
-  Deployment                          Docker, Kubernetes, Google
-                                      Kubernetes Engine, GCE Ingress
-  -----------------------------------------------------------------------
-
-## Project structure
-
-``` text
+```
 LinkSphere/
-├── APIGateway/
-├── DiscoveryServer/DiscoveryServer/
-├── User-Service/User-Service/
-├── Post-Service/Post-Service/
-├── ConnectionService/ConnectionService/
-├── Notification-Service/Notification-Service/
-├── Uploader-Service/Uploader-Service/
-└── k8s/
-    ├── api-gateway.yml
-    ├── user-service.yml
-    ├── posts-service.yml
-    ├── connections-service.yml
-    ├── notification-service.yml
-    ├── uploader-service.yml
-    ├── kafka.yml
-    ├── ingress.yml
-    └── database manifests
+├── APIGateway/                                  # Spring Cloud Gateway + JWT filter
+├── DiscoveryServer/DiscoveryServer/             # Eureka server
+├── User-Service/User-Service/                   # Auth, users, JWT
+├── Post-Service/Post-Service/                   # Posts, likes
+├── ConnectionService/ConnectionService/         # Neo4j connection graph
+├── Notification-Service/Notification-Service/   # Kafka consumers + notifications
+├── Uploader-Service/Uploader-Service/           # Cloudinary uploads
+├── k8s/                                         # Kubernetes manifests
+│   ├── api-gateway.yml
+│   ├── user-service.yml        user-db.yml
+│   ├── posts-service.yml       posts-db.yml
+│   ├── connections-service.yml connections-db.yml
+│   ├── notification-service.yml notification-db.yml
+│   ├── uploader-service.yml
+│   ├── kafka.yml
+│   └── ingress.yml
+└── assets/                                      # README diagrams
 ```
 
-## Run locally
+</details>
 
-### Prerequisites
+---
 
--   JDK 21
--   Docker
--   A Cloudinary account and API credentials
+<a name="run-locally"></a>
+## 🚀 Run Locally
 
-### 1. Start the infrastructure
+**Prerequisites:** JDK 21, Docker, and a free [Cloudinary](https://cloudinary.com) account.
 
-Start Kafka, PostgreSQL, and Neo4j using your preferred local setup.
-Configure the required PostgreSQL databases (`LS_userDB`, `LinkSphere`,
-and `notificationDb`) and set Neo4j authentication to match your local
-service configuration.
+<details>
+<summary><b>1️⃣ Start the infrastructure (Kafka, PostgreSQL, Neo4j)</b></summary>
 
-**Use local-only development credentials. Do not reuse production
-credentials or commit secrets to Git.**
+```bash
+# Kafka (KRaft, no ZooKeeper) on localhost:9092
+docker run -d --name ls-kafka -p 9092:9092 apache/kafka:latest
 
-### 2. Configure environment variables
+# PostgreSQL on localhost:5432
+docker run -d --name ls-postgres -p 5432:5432 \
+  -e POSTGRES_PASSWORD=<choose-a-password> postgres:16
 
-Provide the Cloudinary credentials required by Uploader Service:
+# Create the three databases the services expect
+docker exec -it ls-postgres psql -U postgres \
+  -c 'CREATE DATABASE "LS_userDB";' \
+  -c 'CREATE DATABASE "LinkSphere";' \
+  -c 'CREATE DATABASE "notificationDb";'
 
-``` bash
+# Neo4j on bolt://localhost:7687
+docker run -d --name ls-neo4j -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/<choose-a-password> neo4j:4.4
+```
+
+</details>
+
+<details>
+<summary><b>2️⃣ Set your environment variables</b></summary>
+
+```bash
+export DB_USERNAME=postgres
+export DB_PASSWORD=<your-postgres-password>
+export NEO4J_PASSWORD=<your-neo4j-password>
+export JWT_SECRET_KEY=<random-string-of-at-least-32-characters>
 export CLOUDINARY_CLOUD_NAME=<your-cloud-name>
 export CLOUDINARY_API_KEY=<your-api-key>
 export CLOUDINARY_API_SECRET=<your-api-secret>
 ```
 
-Also configure database credentials and the JWT signing key as required
-by each service's local configuration. The API Gateway and User Service
-must use the same JWT key.
+> `JWT_SECRET_KEY` must be the **same value** for the API Gateway and the User Service.
 
-### 3. Start the services
+</details>
 
-Run each command from the repository root in a separate terminal. On
-Windows, use `mvnw.cmd` if needed.
+<details>
+<summary><b>3️⃣ Start the services (one terminal each, in this order)</b></summary>
 
-``` bash
-cd DiscoveryServer/DiscoveryServer
-./mvnw spring-boot:run
+```bash
+cd DiscoveryServer/DiscoveryServer           && ./mvnw spring-boot:run   # 8761
+cd Uploader-Service/Uploader-Service         && ./mvnw spring-boot:run   # 9050
+cd User-Service/User-Service                 && ./mvnw spring-boot:run   # 9020
+cd ConnectionService/ConnectionService       && ./mvnw spring-boot:run   # 9030
+cd Post-Service/Post-Service                 && ./mvnw spring-boot:run   # 9010
+cd Notification-Service/Notification-Service && ./mvnw spring-boot:run   # 9040
+cd APIGateway                                && ./mvnw spring-boot:run   # 8080
 ```
 
-Repeat for the following service directories, then start the gateway:
+Open <http://localhost:8761> to confirm every service registered, then call the API through the gateway at `http://localhost:8080`.
 
-``` text
-Uploader-Service/Uploader-Service
-User-Service/User-Service
-ConnectionService/ConnectionService
-Post-Service/Post-Service
-Notification-Service/Notification-Service
-APIGateway
+> **Heads-up:** `mvn package` also runs the Jib plugin, which builds **and pushes** a Docker image. Use `./mvnw spring-boot:run`, or add `-Djib.skip=true`, to build locally only.
+
+</details>
+
+---
+
+<a name="deploy"></a>
+## ☸ Deploy to Kubernetes (GKE)
+
+<details>
+<summary><b>Step-by-step deployment</b></summary>
+
+**1. Build and push images** (Jib publishes to Docker Hub as `arnavcodes14/linksphere-*`; change the `<image>` in each `pom.xml` to use your own registry):
+
+```bash
+./mvnw package      # run inside each service folder
 ```
 
-For local development, start Eureka and the infrastructure first.
-Confirm service configuration and ports before testing requests through
-`http://localhost:8080`.
+**2. Create the secrets**
 
-## Kubernetes deployment (GKE)
+```bash
+kubectl create secret generic cloudinary-credentials \
+  --from-literal=CLOUDINARY_CLOUD_NAME=<your-cloud-name> \
+  --from-literal=CLOUDINARY_API_KEY=<your-api-key> \
+  --from-literal=CLOUDINARY_API_SECRET=<your-api-secret>
 
-The repository contains Kubernetes manifests under `k8s/` for the
-services, infrastructure, and ingress.
-
-1.  Configure `gcloud` for the correct project and GKE cluster.
-2.  Build and publish the service images using the repository's
-    configured Jib settings.
-3.  Create Kubernetes Secrets for credentials; ensure manifests
-    reference those Secrets.
-4.  Apply the manifests in the required order and verify the rollout.
-5.  Check the ingress address and test the API through the gateway.
-
-Useful verification commands:
-
-``` bash
-kubectl get deployments
-kubectl get pods -o wide
-kubectl get services
-kubectl get ingress
-kubectl rollout status deployment/api-gateway
+kubectl create secret generic linksphere-secrets \
+  --from-literal=JWT_SECRET_KEY=<random-string-of-at-least-32-characters> \
+  --from-literal=DB_PASSWORD=<your-db-password> \
+  --from-literal=NEO4J_PASSWORD=<your-neo4j-password>
 ```
 
-Review the manifests before applying them to a new cluster. Confirm
-image names, resource requests, persistent-volume availability, secret
-references, and ingress configuration for your environment.
+**3. Apply the manifests**
 
-## Configuration and security
+```bash
+for f in k8s/*.yml; do kubectl apply -f "$f"; done
+```
 
-Important configuration includes:
+**4. Find the public address**
 
--   `SPRING_PROFILES_ACTIVE`: selects the local or `k8s` profile.
--   `DB_SERVER`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`: database
-    connectivity.
--   `UPLOADER_SERVICE_URI`, `CONNECTIONS_SERVICE_URI`: internal service
-    addresses where configured.
--   `USER_SERVICE_URI`, `POSTS_SERVICE_URI`: gateway route targets where
-    configured.
--   `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
-    `CLOUDINARY_API_SECRET`: Cloudinary credentials.
--   `jwt.secretKey`: JWT signing and verification key; it must match
-    between User Service and API Gateway.
+```bash
+kubectl get ingress myingress
+```
 
-**Never commit real API keys, JWT secrets, or database passwords.** Use
-environment variables or Kubernetes Secrets, rotate any credentials that
-were exposed, and avoid putting secret values in screenshots or logs.
+Use the ingress IP as `BASE` in the curl example. The gateway has a long readiness delay (`initialDelaySeconds: 300`), so allow a few minutes on first start.
 
-## Current limitations and future work
+</details>
 
--   Add API endpoints to read notifications and mark them as read.
--   Add comments and comment notifications.
--   Add refresh tokens and role-based authorization.
--   Build a feed/timeline from first-degree connections' posts.
--   Add second-degree connection suggestions using Neo4j.
--   Add CI/CD for automated testing, image publishing, and deployment.
--   Add centralized logging, metrics, and distributed tracing.
--   Build a web or mobile frontend.
+---
 
-## Author
+<details>
+<summary><b>⚙ Configuration reference</b></summary>
+
+Each service has a default profile for local development and a `k8s` profile (`SPRING_PROFILES_ACTIVE=k8s`) for the cluster.
+
+| Variable | Used by | Purpose |
+| :--- | :--- | :--- |
+| `SPRING_PROFILES_ACTIVE` | all services | Set to `k8s` in the cluster |
+| `DB_SERVER`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | User, Post, Notification, Connection (k8s profile) | Database connection |
+| `NEO4J_PASSWORD` | Connection Service (local) | Neo4j password |
+| `UPLOADER_SERVICE_URI` | Post Service | Base URL of the Uploader Service |
+| `CONNECTIONS_SERVICE_URI` | Post Service, API Gateway | Base URL of the Connection Service |
+| `USER_SERVICE_URI`, `POSTS_SERVICE_URI` | API Gateway | Downstream route targets (override Eureka lookup) |
+| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Uploader Service | Cloudinary credentials |
+| `JWT_SECRET_KEY` | API Gateway, User Service | HMAC key to sign and verify JWTs. **Must match in both.** |
+
+> ⚠️ Never commit real credentials. Supply secrets through environment variables or Kubernetes Secrets.
+
+</details>
+
+---
+
+<a name="roadmap"></a>
+## 🗺 Roadmap
+
+- [ ] REST endpoints to read and mark notifications as read (they're stored but not yet exposed)
+- [ ] Comments on posts, with notifications to the post owner
+- [ ] Refresh tokens and role-based authorization
+- [ ] Feed / timeline built from first-degree connections' posts
+- [ ] Second-degree connection suggestions using Neo4j traversal
+- [ ] CI/CD pipeline (build, test, push images, deploy to GKE)
+- [ ] Centralised logging, metrics and distributed tracing
+- [ ] Web or mobile frontend
+
+---
+
+## 👤 Author
 
 **TheProfessorcodes** · [GitHub](https://github.com/TheProfessorcodes)
 
-------------------------------------------------------------------------
-
-If you explore the project, feedback and suggestions are welcome.
+If you find this project useful, consider giving it a ⭐ and feel free to open an issue or reach out.
